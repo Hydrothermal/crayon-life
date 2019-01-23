@@ -1,0 +1,89 @@
+import Graphics2D;
+import Math;
+import Matrices;
+import TwoCansAlpha2;
+
+function checkAlive(cell) {
+    return cell == 1;
+}
+
+class Main: AbstractScene {
+    field cells = new Matrices.Matrix(48, 64);
+    field next = new Matrices.Matrix(48, 64);
+    
+    constructor(): base() { }
+
+    function get(row, col) {
+        return this.cells.getValue(row, col);
+    }
+
+    function getNeighbors(c_row, c_col) {
+        neighbors = [];
+
+        for(row = c_row - 1; row <= c_row + 1; row++) {
+            for(col = c_col - 1; col <= c_col + 1; col++) {
+                // skip origin coords
+                if(row != c_row || col != c_col) {
+                    // check bounds
+                    if(row >= 0 && col >= 0 && row < 48 && col < 64) {
+                        neighbors.add(this.get(row, col));
+                    } else {
+                        neighbors.add(0);
+                    }
+                }
+            }
+        }
+
+        return neighbors;
+    }
+
+    function step() {
+        this.next.copyFrom(this.cells);
+
+        for(row = 0; row < 48; row++) {
+            for(col = 0; col < 64; col++) {
+                neighbor_count = this.getNeighbors(row, col).filter(checkAlive).length;
+
+                if(neighbor_count < 2 || neighbor_count > 3) {
+                    this.next.setValue(row, col, 0);
+                } else if(neighbor_count == 3) {
+                    this.next.setValue(row, col, 1);
+                }
+            }
+        }
+
+        this.cells.copyFrom(this.next);
+    }
+    
+    function update(inputmanager, events) {
+        for(event: events) {
+            if(event.type == EventType.MOUSE_PRESS) {
+                // toggle cell
+                row = Math.floor(event.y / 10);
+                col = Math.floor(event.x / 10);
+                val = this.get(row, col) == 0 ? 1 : 0;
+
+                this.cells.setValue(row, col, val);
+            } else if(event.type == EventType.KEY && event.down == false && event.key == 32) {
+                this.step();
+            }
+        }
+    }
+    
+    function render() {
+        Graphics2D.Draw.fill(255, 255, 255);
+
+        for(row = 0; row < 64; row++) { Graphics2D.Draw.line(row * 10, 0, row * 10, 480, 1, 0, 0, 0); }
+        
+        for(col = 0; col < 48; col++) {
+            Graphics2D.Draw.line(0, col * 10, 640, col * 10, 1, 0, 0, 0);
+
+            // draw live cells
+            for(row = 0; row < 64; row++) {
+                if(this.get(col, row) == 1) {
+                    Graphics2D.Draw.rectangle(row * 10, col * 10, 10, 10, 0, 0, 0);
+                }
+            }
+        }
+    }
+}
